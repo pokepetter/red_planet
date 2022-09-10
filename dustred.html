@@ -1,32 +1,16 @@
-from ursina import *
-app = Ursina(forced_aspect_ratio=16/9)
-aspect_ratio = camera.aspect_ratio
-camera.orthographic = True
-# from ursina import Entity as UrsinaEntity
-class Entity(Entity):
-    def __init__(self, **kwargs):
-        super().__init__()
-        self.model='quad'
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8" /><title>platformer</title><link rel="stylesheet" href="taptapir.css"></head><body></body><script src="taptapir.js"></script>
+<script type='text/pokescript'>
 
-        for key, value in kwargs.items():
-            setattr(self, key, value)
-
-    @property
-    def xy(self):
-        return self.position.xy
-    @xy.setter
-    def xy(self, value):
-        self.position = value
-
-
+set_window_color('rgb(50 50 50)')
+set_background_color('rgb(9 9 1)')
+set_orientation('landscape')
+set_scale(.75)
+distance_2d = distance
 
 player = Entity(scale=.075, origin_y=-.5, z=.01, roundness=.5, alpha=.2, visible_self=False, xy=[-.75,0], is_in_hookshot=False)
 player.graphics = Entity(scale=.075, texture='red_planet_player.png', origin_y=-.5, z=.01, roundness=.5, xy=player.xy)
 camera.fov = 1
 camera.xy = player.xy
-# brush = new Image()
-# brush.src = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAANUlEQVQokWPYvHnzf1zg6dOn/5kkJSUZcAEpKSkGJpyyUDAYFLA8f/6c4ezZs1glnz9/zgAAx+wnKdc1c+QAAAAASUVORK5CYII="
-# ground = Entity(scale=[10,.2], origin_y=.5, y=-.5, texture=brush.src, tileset_size=[.02,1], z=1)
 sky = Entity(texture='sky.png', scale=[2,1], z=10)
 
 mg = Entity(scale=4, z=0)
@@ -35,9 +19,7 @@ bbg = Entity(scale=3, z=5)
 fg = Entity(scale=5, z=-4)
 
 rocks = []
-hookshot_points = [
-
-]
+hookshot_points = []
 rock_positions = {
     'level_0' : [[1.2,-.33], [1.4, -.29]],
     'level_1' : [[0,-1.1], [.2,-1.08]],
@@ -48,7 +30,6 @@ hook_positions = {
 }
 
 def goto_level(name):
-    global current_level_name, current_collision_map, rocks
     current_level_name = name
     mg.texture = name + '_mg.png'
     bg.texture = name + '_bg.png'
@@ -60,7 +41,7 @@ def goto_level(name):
 
     for e in rocks:
         destroy(e)
-    rocks.clear()
+    rocks = []
 
     target_list = rock_positions[name]
     for i, e in enumerate(target_list):
@@ -71,7 +52,7 @@ def goto_level(name):
 
     for e in hookshot_points:
         destroy(e)
-    hookshot_points.clear()
+    hookshot_points = []
 
     target_list = hook_positions[name]
     for pos in target_list:
@@ -79,8 +60,9 @@ def goto_level(name):
 
     if name == 'level_1':
         door =          Entity(scale=[.2,.4], xy=[1.8,-.8], on_click=True, collider='box', texture='rock.png', z=-.1, breakable=False, color=color.azure)
-        door_button =   Entity(hp=1, scale=[.1,.1], xy=[-.7,-.13], on_click=True, collider='box', z=-.1, breakable=True, color=hsv(0,.2,.2))
-        door_button.on_click = door.disable
+        door_button =   Entity(hp=1, scale=[.1,.1], xy=[-.7,-.13], on_click=True, z=-.1, breakable=True, color=hsv(0,.2,.2))
+        door_button.on_click = def():
+            door.enabled = False
         blocker = Entity(scale=[.2,.4], xy=[2.1,-.8], on_click=True, collider='box', z=-.1, breakable=False, color=color.black)
 
         rocks.append(door)
@@ -128,7 +110,7 @@ def update():
         return
 
     player.graphics.x = lerp(player.graphics.x, player.x, lerp_speed)
-    player.graphics.y = lerp(player.graphics.y, player.y, lerp_speed/4)
+    player.graphics.y = lerp(player.graphics.y, player.y +.05, lerp_speed/4)
 
     # player movement
     # normalized * grid_size
@@ -184,42 +166,42 @@ def update():
 
 
 
-gun_line = Entity(scale=.005, enabled=False, color=color.white, origin=[0,-.5])
+gun_line = Entity(scale=.005, enabled=False, color=color.white, origin=[-.5,0])
 
 def input(key):
-    global rocks
     if key == 'left mouse down' and mouse.hovered_entity:
         target = mouse.hovered_entity;
         is_breakable = target in rocks
-        dist = distance_2d(player, target)
+        dist = distance_2d(player.xy, target.xy)
 
         if is_breakable and dist < .5:
             if not target.breakable:
                 return
 
             target.hp -= 1
-            target.color = color.red
+            # target.color = color.red
             gun_line.x = player.graphics.x
-            gun_line.y = player.graphics.y + .04
+            gun_line.y = player.graphics.y + .0
             gun_line.z = 1
             gun_line.enabled = True
-            gun_line.scale_y = distance(player.graphics.position, target.position)
-            gun_line.look_at_2d(target.position)
+            gun_line.scale_x = distance(player.graphics.xy, target.xy)
+            gun_line.look_at(target.xy)
             def disable():
                 gun_line.enabled = False
-                target.color = color.white
+                # target.color = color.white
             invoke(disable, delay=3/60)
 
             if target.hp <= 0:
-                rocks = [e for e in rocks if not e == target]
+                rocks = [e for e in rocks if e != target]
                 destroy(target, delay=.05)
 
             return
 
-        if target in hookshot_points:
+        hookable = target in hookshot_points
+        if hookable:
             start_hookshot([target.x, target.y-.05])
 
-hook_wire = Entity(scale=.01, color=color.black, enabled=False, origin_y=-.5, z=.1)
+hook_wire = Entity(scale=.01, color=color.black, enabled=False, origin=[-.5,0], z=1)
 
 def start_hookshot(pos):
     dist = distance_2d(player.xy, pos)
@@ -231,9 +213,9 @@ def start_hookshot(pos):
 
     hook_wire.enabled = True
     hook_wire.xy = pos
-    hook_wire.look_at_2d(player.position)
-    hook_wire.scale_y = dist
-    hook_wire.animate('scale_y', 0, dist)
+    hook_wire.look_at(player.position)
+    hook_wire.scale_x = dist
+    hook_wire.animate('scale_x', 0, dist)
 
 
 def stop_hookshot():
@@ -241,14 +223,17 @@ def stop_hookshot():
     hook_wire.enabled = False
 
 
-intro_part_1 = Button(scale=3, color=color.black, highlight_color=color.black, text="We didn't hear anything from them after the sandstorm.", z=-10)
-intro_part_1.on_click = intro_part_1.disable
+intro_part_1 = Button(scale=3, color=color.black, text_color='white', text=`We didn't hear anything from them after the sandstorm.`, z=-10)
+intro_part_1.on_click = def():
+    intro_part_1.enabled = False
 
-intro_part_2 = Button(scale=3, model='quad', color=color.black, highlight_color=color.black, text="So I was sent to investigate.", z=-9)
-intro_part_2.on_click = intro_part_2.disable
+intro_part_2 = Button(scale=3, color=color.black, text_color='white', text=`So I was sent to investigate.`, z=-9)
+intro_part_2.on_click = def():
+    intro_part_2.enabled = False
 
-win_screen = Button(scale=3, model='quad', color=color.black, highlight_color=color.black, text="THE END", z=-9, enabled=False)
-win_screen.on_click = win_screen.disable
+win_screen = Button(scale=3, color=color.black, text_color='white', text=`THE END`, z=-9, enabled=False)
+win_screen.on_click = def():
+    win_screen.enabled = False
 
 
-app.run()
+</script><script src="pokescript_compiler.js"></script></html>
